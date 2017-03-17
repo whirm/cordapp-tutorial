@@ -3,7 +3,6 @@ package com.example.contract
 import com.example.state.IOUState
 import net.corda.core.contracts.*
 import net.corda.core.crypto.SecureHash
-import net.corda.core.random63BitValue
 
 /**
  * A implementation of a basic smart contract in Corda.
@@ -17,32 +16,21 @@ import net.corda.core.random63BitValue
  *
  * All contracts must sub-class the [Contract] interface.
  */
-open class IOUContract : Contract {
-    /**
-     * The verify() function of all the states' contracts must not throw an exception for a transaction to be
-     * considered valid.
-     */
+class TokenContract : Contract {
+
+    /** The verify() function must not throw an exception if, and only if, the transaction is valid. */
     override fun verify(tx: TransactionForContract) {
-        val command = tx.commands.requireSingleCommand<Commands.Create>()
+        val command = tx.commands.requireSingleCommand<Issue>()
         requireThat {
-            // Generic constraints around the IOU transaction.
             "No inputs should be consumed when issuing an IOU." by (tx.inputs.isEmpty())
             "Only one output state should be created." by (tx.outputs.size == 1)
-            val out = tx.outputs.single() as IOUState
-            "The sender and the recipient cannot be the same entity." by (out.sender != out.recipient)
-            "All of the participants must be signers." by (command.signers.containsAll(out.participants))
-
-            // IOU-specific constraints.
-            "The IOU's value must be non-negative." by (out.iou.value > 0)
+            val participants = tx.outputs.single().participants
+            "All of the participants must be signers." by (command.signers.containsAll(participants))
         }
     }
 
-    /**
-     * This contract only implements one command, Create.
-     */
-    interface Commands : CommandData {
-        class Create : Commands
-    }
+    /** This contract only implements one command, Issue. */
+    class Issue : CommandData
 
     /** This is a reference to the underlying legal contract template and associated parameters. */
     override val legalContractReference: SecureHash = SecureHash.sha256("IOU contract template and params")
