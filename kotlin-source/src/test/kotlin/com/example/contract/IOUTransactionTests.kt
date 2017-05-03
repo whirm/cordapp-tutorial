@@ -92,4 +92,37 @@ class IOUTransactionTests {
             }
         }
     }
+
+    @Test
+    fun `transaction can be spent`() {
+        val iou = IOU(1)
+        val state = IOUState(iou, MINI_CORP, MEGA_CORP, IOUContract())
+        ledger {
+            transaction {
+                input { state }
+                command(MEGA_CORP_PUBKEY) { IOUContract.Commands.Spend() }
+                verifies()
+            }
+        }
+    }
+
+    @Test
+    fun `transaction can't be double spent`() {
+        val iou = IOU(1)
+        val state = IOUState(iou, MINI_CORP, MEGA_CORP, IOUContract())
+        ledger {
+            transaction {
+                input { state }
+                command(MEGA_CORP_PUBKEY) { IOUContract.Commands.Spend() }
+                verifies()
+            }
+            verifies()
+            transaction {
+                input { state }
+                command(MEGA_CORP_PUBKEY) { IOUContract.Commands.Spend() }
+                fails()
+            }
+            verifies()
+        }
+    }
 }
